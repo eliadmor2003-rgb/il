@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>אימות חבורה - יום המשפחה</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; margin: 0; overflow: hidden; }
+        
+        /* שלב 1: תיבת "אני לא רובוט" */
+        .robot-check { background: white; border: 1px solid #d3d3d3; border-radius: 3px; width: 300px; height: 74px; display: flex; align-items: center; padding: 0 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; }
+        .checkbox { width: 24px; height: 24px; border: 2px solid #c1c1c1; border-radius: 2px; margin-left: 12px; position: relative; background: white; }
+        .checkbox.checked::after { content: '✓'; position: absolute; top: -5px; left: 2px; font-size: 22px; color: #009a44; }
+        .robot-text { flex-grow: 1; font-size: 14px; color: #555; }
+
+        /* שלב 2: תיבת התמונות */
+        .captcha-box { display: none; background: white; padding: 15px; border: 1px solid #ccc; box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 360px; z-index: 100; position: absolute; }
+        .header { background: #4285f4; color: white; margin: -15px -15px 15px -15px; padding: 20px; }
+        .header p { margin: 0; font-size: 19px; font-weight: bold; }
+        
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 15px; }
+        .img-wrapper { position: relative; width: 100%; height: 110px; cursor: pointer; background: #eee; }
+        .grid img { width: 100%; height: 100%; object-fit: cover; transition: 0.2s; }
+        
+        /* סימון כוכב בפינה */
+        .select-icon { position: absolute; bottom: 5px; left: 5px; font-size: 20px; display: none; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5)); }
+        .img-wrapper.selected .select-icon { display: block; }
+        .img-wrapper.selected img { transform: scale(0.9); opacity: 0.8; }
+
+        .footer { border-top: 1px solid #eee; padding-top: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .btn { background: #4285f4; color: white; border: none; padding: 10px 24px; cursor: pointer; font-weight: bold; border-radius: 3px; }
+        .error-msg { color: #d93025; font-size: 13px; display: none; margin-bottom: 10px; font-weight: bold; }
+
+        /* שלב 3: דף סיום */
+        #success-page { display: none; text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 4px solid #4285f4; }
+        #success-page h1 { color: #1a73e8; font-size: 2.8rem; margin: 0; }
+        #success-page p { font-size: 1.5rem; color: #5f6368; margin-top: 10px; }
+        
+        .confetti { position: absolute; width: 10px; height: 10px; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div id="first-step" class="robot-check" onclick="showCaptcha()">
+        <div id="main-checkbox" class="checkbox"></div>
+        <div class="robot-text">אני לא רובוט</div>
+        <img src="https://www.gstatic.com/recaptcha/api2/logo_48.png" width="30">
+    </div>
+
+    <div id="captcha-container" class="captcha-box">
+        <div class="header">
+            <p>סמן את התמונות של החבורה שלנו</p>
+        </div>
+        <div id="error" class="error-msg">סמן את כל התמונות של החבורה שלנו</div>
+        <div id="imageGrid" class="grid"></div>
+        <div class="footer">
+            <button class="btn" onclick="checkCaptcha()">אישור</button>
+        </div>
+    </div>
+
+    <div id="success-page">
+        <h1>יום המשפחה שמח אחים שלי! 🥂</h1>
+        <p>אוהב אתכם אחד אחד</p>
+    </div>
+
+    <script>
+        // רשימת התמונות בסיומת jpeg
+        const images = [
+            { src: 'a.jpeg', correct: true }, { src: 'e.jpeg', correct: false },
+            { src: 'b.jpeg', correct: true }, { src: 'f.jpeg', correct: false },
+            { src: 'g.jpeg', correct: false }, { src: 'c.jpeg', correct: true },
+            { src: 'h.jpeg', correct: false }, { src: 'd.jpeg', correct: true },
+            { src: 'i.jpeg', correct: false }
+        ];
+
+        function showCaptcha() {
+            document.getElementById('main-checkbox').classList.add('checked');
+            setTimeout(() => {
+                document.getElementById('first-step').style.display = 'none';
+                document.getElementById('captcha-container').style.display = 'block';
+                renderGrid();
+            }, 600);
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('imageGrid');
+            images.forEach(imgData => {
+                const wrapper = document.createElement('div');
+                wrapper.classList.add('img-wrapper');
+                wrapper.dataset.correct = imgData.correct;
+                wrapper.innerHTML = `<img src="${imgData.src}"><div class="select-icon">⭐</div>`;
+                wrapper.onclick = () => wrapper.classList.toggle('selected');
+                grid.appendChild(wrapper);
+            });
+        }
+
+        function checkCaptcha() {
+            const wrappers = document.querySelectorAll('.img-wrapper');
+            let isCorrect = true;
+            let count = 0;
+
+            wrappers.forEach(w => {
+                const selected = w.classList.contains('selected');
+                const should = w.dataset.correct === "true";
+                if (selected) count++;
+                if (selected !== should) isCorrect = false;
+            });
+
+            if (isCorrect && count > 0) {
+                document.getElementById('captcha-container').style.display = 'none';
+                document.getElementById('success-page').style.display = 'block';
+                document.body.style.backgroundColor = "#e8f0fe";
+                createConfetti();
+            } else {
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+
+        function createConfetti() {
+            for (let i = 0; i < 100; i++) {
+                const conf = document.createElement('div');
+                conf.classList.add('confetti');
+                conf.style.backgroundColor = ['#f44336','#2196f3','#ffeb3b','#4caf50'][Math.floor(Math.random()*4)];
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = '-10px';
+                document.body.appendChild(conf);
+                conf.animate([{ transform: 'translateY(0) rotate(0)', opacity: 1 }, { transform: `translateY(100vh) rotate(${Math.random()*360}deg)`, opacity: 0 }], { duration: Math.random()*3000+2000 });
+            }
+        }
+    </script>
+</body>
+</html>
